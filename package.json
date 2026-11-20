@@ -1,0 +1,17 @@
+{
+  "name": "inbox-guard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "附件目录监控与解析准入服务",
+  "engines": {
+    "node": ">=22.5"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/index.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch src/index.js",
+    "demo": "node --disable-warning=ExperimentalWarning scripts/demo.js",
+    "mock-scanner": "node scripts/mock-scanner.js",
+    "test": "node --disable-warning=ExperimentalWarning --test --test-concurrency=1 test/*.test.js"
+  }
+}

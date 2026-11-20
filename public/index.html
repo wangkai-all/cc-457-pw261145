@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>附件准入监控</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232a78d6'/%3E%3Cpath d='M10 20l6-9 6 9z' fill='white'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+<div class="viz-root" id="root">
+  <header class="top">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 9h16M8 5v4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m9.5 14.5 2 2 3.5-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <h1>附件准入监控</h1>
+        <p class="sub" id="subtitle">正在连接…</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <div class="status-pill" id="overall" data-status="ok">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="overall-text">正常</span>
+      </div>
+      <button class="btn" id="btn-refresh" type="button" title="立即刷新">刷新</button>
+      <button class="btn" id="btn-pause" type="button" aria-pressed="false">暂停接收</button>
+      <button class="btn icon" id="btn-theme" type="button" title="切换深浅色" aria-label="切换深浅色">◐</button>
+    </div>
+  </header>
+
+  <section class="hero-row" aria-label="关键指标">
+    <div class="hero card">
+      <div class="hero-label">目录水位</div>
+      <div class="hero-figure" id="waterline-value">—</div>
+      <div class="hero-sub" id="waterline-sub">—</div>
+      <div class="meter" id="waterline-meter" role="img" aria-label="收件目录占用">
+        <div class="meter-fill" id="waterline-fill"></div>
+        <div class="meter-tick warn" id="waterline-warn"></div>
+        <div class="meter-tick crit" id="waterline-crit"></div>
+      </div>
+      <div class="hero-foot">
+        <span id="waterline-files">— 个文件</span>
+        <span id="waterline-budget">—</span>
+      </div>
+    </div>
+
+    <div class="tiles" id="tiles">
+      <div class="tile card" data-tile="queue">
+        <div class="tile-label">解析队列</div>
+        <div class="tile-value" id="tile-queue">—</div>
+        <div class="tile-foot" id="tile-queue-foot">待解析</div>
+      </div>
+      <div class="tile card" data-tile="quarantine">
+        <div class="tile-label">隔离中</div>
+        <div class="tile-value" id="tile-quarantine">—</div>
+        <div class="tile-foot" id="tile-quarantine-foot">需处理</div>
+      </div>
+      <div class="tile card" data-tile="checking">
+        <div class="tile-label">检查中</div>
+        <div class="tile-value" id="tile-checking">—</div>
+        <div class="tile-foot" id="tile-checking-foot">稳定性 / 扫描</div>
+      </div>
+      <div class="tile card" data-tile="health">
+        <div class="tile-label">依赖状态</div>
+        <div class="tile-value compact" id="tile-health">—</div>
+        <div class="tile-foot" id="tile-health-foot">扫描 / 解析</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid-2">
+    <div class="card" id="card-health">
+      <div class="card-head">
+        <h2>服务健康</h2>
+        <span class="muted" id="health-age">—</span>
+      </div>
+      <ul class="checklist" id="health-list"></ul>
+      <div class="scanner-box" id="scanner-box">
+        <div class="scanner-row">
+          <div>
+            <div class="tile-label">扫描引擎</div>
+            <div id="scanner-name" class="mono-sm">—</div>
+          </div>
+          <div class="scanner-buttons" id="scanner-buttons">
+            <button class="btn tiny" type="button" data-scanner="simulate-unavailable">模拟不可用</button>
+            <button class="btn tiny" type="button" data-scanner="simulate-recover">恢复</button>
+            <button class="btn tiny" type="button" data-scanner="simulate-failures">模拟失败</button>
+          </div>
+        </div>
+        <div class="scanner-meta muted" id="scanner-meta">—</div>
+      </div>
+    </div>
+
+    <div class="card" id="card-reasons">
+      <div class="card-head">
+        <h2>隔离原因分布</h2>
+        <span class="muted" id="reasons-total">—</span>
+      </div>
+      <div class="reason-chart" id="reason-chart" role="group" aria-label="隔离原因分布"></div>
+      <p class="muted small" id="reasons-empty">暂无隔离文件。</p>
+    </div>
+  </section>
+
+  <section class="card" id="card-products">
+    <div class="card-head wrap">
+      <h2>文件清单</h2>
+      <div class="filters">
+        <div class="seg" id="state-filter" role="tablist" aria-label="按状态筛选">
+          <button type="button" class="seg-btn active" data-state="quarantined" role="tab" aria-selected="true">隔离</button>
+          <button type="button" class="seg-btn" data-state="queued" role="tab" aria-selected="false">队列</button>
+          <button type="button" class="seg-btn" data-state="checking" role="tab" aria-selected="false">检查中</button>
+          <button type="button" class="seg-btn" data-state="released,deleted,lost" role="tab" aria-selected="false">历史</button>
+          <button type="button" class="seg-btn" data-state="" role="tab" aria-selected="false">全部</button>
+        </div>
+        <label class="search">
+          <span class="sr-only">搜索文件名或哈希</span>
+          <input id="search" type="search" placeholder="搜索文件名 / 哈希 / 原因" autocomplete="off" />
+        </label>
+        <select id="sort" class="select" aria-label="排序">
+          <option value="newest">最新优先</option>
+          <option value="oldest">最早优先</option>
+          <option value="size">体积优先</option>
+          <option value="updated">最近更新</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="products" id="products-table">
+        <thead>
+          <tr>
+            <th scope="col">文件</th>
+            <th scope="col">状态</th>
+            <th scope="col">原因</th>
+            <th scope="col" class="num">体积</th>
+            <th scope="col">哈希</th>
+            <th scope="col">时间</th>
+            <th scope="col" class="actions-col">操作</th>
+          </tr>
+        </thead>
+        <tbody id="products-body"></tbody>
+      </table>
+    </div>
+    <div class="table-foot">
+      <span class="muted" id="products-count">—</span>
+      <div class="pager">
+        <button class="btn tiny" id="prev" type="button">上一页</button>
+        <span class="muted" id="page-label">1</span>
+        <button class="btn tiny" id="next" type="button">下一页</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid-2">
+    <div class="card" id="card-events">
+      <div class="card-head">
+        <h2>最近活动</h2>
+        <span class="muted small">仅显示最近事件</span>
+      </div>
+      <ol class="events" id="events"></ol>
+    </div>
+    <div class="card" id="card-detail">
+      <div class="card-head">
+        <h2>详情</h2>
+        <span class="muted small" id="detail-id">选择一行查看</span>
+      </div>
+      <div id="detail" class="detail empty">
+        <p class="muted">在文件清单中选择一行，查看哈希、检查结果与完整事件轨迹。</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span>附件目录监控 · 稳定性与安全检查通过后才进入解析队列</span>
+    <span class="muted" id="foot-meta">—</span>
+  </footer>
+</div>
+
+<div class="toast-stack" id="toasts" aria-live="polite"></div>
+
+<dialog id="release-dialog" aria-labelledby="release-title">
+  <form method="dialog">
+    <h2 id="release-title">释放文件</h2>
+    <p class="muted small" id="release-target-name">—</p>
+    <label class="field">
+      <span>目标目录（留空使用 data/released）</span>
+      <input id="release-dir" type="text" placeholder="/absolute/path" autocomplete="off" />
+    </label>
+    <label class="field">
+      <span>备注</span>
+      <input id="release-note" type="text" placeholder="放行理由（可选）" autocomplete="off" />
+    </label>
+    <p class="warn-text" id="release-warn" hidden>注意：该文件曾被判定为安全风险或检查失败，放行会跳过准入控制。</p>
+    <div class="dialog-actions">
+      <button class="btn" value="cancel" type="submit" formnovalidate>取消</button>
+      <button class="btn primary" value="ok" type="submit" id="release-confirm">确认释放</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="delete-dialog" aria-labelledby="delete-title">
+  <form method="dialog">
+    <h2 id="delete-title">删除文件</h2>
+    <p class="muted small" id="delete-target-name">—</p>
+    <label class="check">
+      <input type="checkbox" id="delete-hard" />
+      <span>彻底删除：同时移除回收区副本并清除去重记录（同一文件再次投递时会被当作新文件处理）</span>
+    </label>
+    <p class="muted small">删除后记录（哈希、原因）仍保留；默认仅把磁盘副本移入回收区。</p>
+    <div class="dialog-actions">
+      <button class="btn" value="cancel" type="submit" formnovalidate>取消</button>
+      <button class="btn danger" value="ok" type="submit">确认删除</button>
+    </div>
+  </form>
+</dialog>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>
